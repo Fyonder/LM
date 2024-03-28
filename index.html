@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LM BARBEARIA</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Agendamento de Horário</h1>
+        <form id="appointmentForm">
+            <label for="name">Nome:</label>
+            <input type="text" id="name" required>
+            <label for="phone">Telefone:</label>
+            <input type="tel" id="phone" required>
+            <label for="date">Data:</label>
+            <input type="date" id="date" required>
+            <label for="time">Horário:</label>
+            <select id="time" required>
+                <option value="" disabled selected>Selecione um horário</option>
+                <option value="09:00">09:00</option>
+                <option value="10:00">10:00</option>
+                <option value="11:00">11:00</option>
+                <option value="14:00">14:00</option>
+                <option value="15:00">15:00</option>
+                <option value="16:00">16:00</option>
+            </select>
+            <button type="submit">Agendar</button>
+        </form>
+        <div id="message"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
