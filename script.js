@@ -132,9 +132,9 @@ const firebaseConfig = {
           }
           checkoutBtn.addEventListener("click", function() {
             const isOpen = checkRestaurantOpen();
-            
+        
             if (!isOpen) {
-                alert("Restaurante Fechado No Momento!!");
+                alert("Barbearia Fechada No Momento!!");
                 return;
             }
             
@@ -146,20 +146,18 @@ const firebaseConfig = {
             const time = timeInput.value;
             
             if (name && phone && date && time) {
-                // Verificar se já existe um agendamento para a data e hora especificadas
                 db.collection("appointments")
                     .where("date", "==", date)
                     .where("time", "==", time)
                     .get()
                     .then((querySnapshot) => {
                         if (querySnapshot.empty) {
-                            // Nenhum agendamento encontrado para essa data e hora, adicionar novo agendamento
                             const appointmentData = {
                                 name: name,
                                 phone: phone,
                                 date: date,
                                 time: time,
-                                cart: cart // Adiciona os itens do carrinho aos dados do agendamento
+                                cart: cart
                             };
         
                             db.collection("appointments")
@@ -167,16 +165,19 @@ const firebaseConfig = {
                                 .then(function(docRef) {
                                     console.log("Agendamento enviado com sucesso! ID do documento:", docRef.id);
                                     document.getElementById("appointmentForm").reset();
-                                    cart = []; // Limpa o carrinho após o envio
-                                    updateCartModal(); // Atualiza o modal do carrinho
+                                    cart = [];
+                                    updateCartModal();
                                     alert("Pedido enviado com sucesso!");
+                                    
+                                    // Enviar mensagem para o WhatsApp
+                                    const whatsappURL = `https://wa.me/7996109024/?text=Olá! Tenho interesse em agendar um horário.%0ANome:%20${name}%0ATelefone:%20${phone}%0AData:%20${date}%0AHorário:%20${time}`;
+                                    window.open(whatsappURL, "_blank");
                                 })
                                 .catch(function(error) {
                                     console.error("Erro ao enviar agendamento:", error);
                                     alert("Erro ao enviar agendamento. Por favor, tente novamente mais tarde.");
                                 });
                         } else {
-                            // Agendamento encontrado para essa data e hora, exibir mensagem de erro
                             alert("Essa hora já está agendada. Por favor, selecione outra hora.");
                         }
                     })
@@ -188,7 +189,7 @@ const firebaseConfig = {
                 alert("Por favor, preencha todos os campos do formulário.");
             }
         });
-            
+        
           
           // Função para obter os detalhes do carrinho
           function getCartDetails() {
@@ -201,7 +202,7 @@ const firebaseConfig = {
           function checkRestaurantOpen() {
               const data = new Date();
               const hour = data.getHours();
-              return (hour >= 10 && hour < 24) || (hour >= 0 && hour < 3); // Aberto das 10h às 3h
+              return (hour >= 10 && hour < 24) || (hour >= 0 && hour < 5); // Aberto das 10h às 3h
           }
 
           // Verificar se o restaurante está aberto e atualizar o estilo
