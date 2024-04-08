@@ -199,11 +199,19 @@ const firebaseConfig = {
           }
 
           // Função para verificar se o restaurante está aberto
-          function checkRestaurantOpen() {
-              const data = new Date();
-              const hour = data.getHours();
-              return (hour >= 10 && hour < 24) || (hour >= 0 && hour < 5); // Aberto das 10h às 3h
-          }
+function checkRestaurantOpen() {
+    const data = new Date();
+    const hour = data.getHours();
+    const dayOfWeek = data.getDay(); // Obtém o dia da semana (0 = Domingo, 1 = Segunda-feira, ..., 6 = Sábado)
+
+    // Verifica se é sábado
+    if (dayOfWeek === 6) {
+        return hour >= 8 && hour < 20; // Aberto das 8h às 19h
+    } else {
+        return hour >= 8 && hour < 20; // Aberto das 8h às 19h de segunda a sexta-feira
+    }
+}
+
 
           // Verificar se o restaurante está aberto e atualizar o estilo
           const spanItem = document.getElementById("date-span");
