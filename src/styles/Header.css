@@ -1,0 +1,145 @@
+/* Header.css */
+.header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color: #f8fafc;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.header-logo {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid #f8fafc;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.header-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.header-address {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+
+.header-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.header-status.open .status-text {
+  background-color: #3b82f6;
+  color: #f8fafc;
+  padding: 0.3rem 0.75rem;
+  border-radius: 16px;
+  display: inline-block;
+}
+
+.header-status.closed .status-text {
+  background-color: #ef4444;
+  color: #f8fafc;
+  padding: 0.3rem 0.75rem;
+  border-radius: 16px;
+  display: inline-block;
+}
+
+.header-hours {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.header-loading {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+  color: #1f2937;
+  background-color: #f8fafc;
+  border-radius: 12px;
+}
+
+.header-error {
+  text-align: center;
+  padding: 1rem;
+  background-color: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .header-logo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  .header-address {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-title {
+    font-size: 1.25rem;
+  }
+
+  .header-address {
+    font-size: 0.9rem;
+  }
+
+  .header-status {
+    font-size: 0.85rem;
+  }
+}
+
+/* Tema Escuro */
+@media (prefers-color-scheme: dark) {
+  .header {
+    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  }
+
+  .header-loading {
+    background-color: #1f2937;
+    color: #f8fafc;
+  }
+
+  .header-error {
+    background-color: #4a1c1c;
+    color: #f8d7da;
+    border-color: #ef4444;
+  }
+}
