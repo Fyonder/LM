@@ -13,31 +13,32 @@ const Menu = ({ addToCart }) => {
   const [loading, setLoading] = useState(true);
   const [userUid, setUserUid] = useState(null);
 
-  // Fetch user authentication
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserUid(user.uid);
-      } else {
-        setUserUid(null);
-      }
+      setUserUid(user?.uid || null);
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // Fetch services from Firestore
   useEffect(() => {
     const fetchServices = async () => {
       if (!userUid) return;
+      
       try {
         setLoading(true);
         const servicesRef = collection(db, 'barbershops', userUid, 'services');
         const servicesSnap = await getDocs(servicesRef);
-        const servicesList = servicesSnap.docs.map((doc) => ({
+        
+        const servicesList = servicesSnap.docs.map(doc => ({
           id: doc.id,
-          ...doc.data(),
+          name: doc.data().name || 'Serviço sem nome',
+          description: doc.data().description || '',
+          price: doc.data().price || 0,
+          duration: doc.data().duration || 0,
+          image: doc.data().image || null
         }));
+
         setServices(servicesList.sort((a, b) => a.name.localeCompare(b.name)));
       } catch (err) {
         console.error('Erro ao buscar serviços:', err);
@@ -46,64 +47,85 @@ const Menu = ({ addToCart }) => {
         setLoading(false);
       }
     };
+
     fetchServices();
   }, [userUid]);
 
   const handleAddToCart = (service) => {
-    if (!service.id || !service.name || !service.price) {
+    if (!service?.id || !service?.name || service?.price === undefined) {
       toast.error('Serviço inválido. Tente novamente.');
       return;
     }
-    addToCart(service);
+    addToCart({
+      id: service.id,
+      name: service.name,
+      price: parseFloat(service.price),
+      duration: service.duration,
+      image: service.image
+    });
   };
 
   return (
-    <section className="menu container">
-      <h2 className="section-title">Nossos Serviços</h2>
+    <section className="menu-section">
+      <h2 className="menu-title">Nossos Serviços</h2>
+      
       {loading ? (
-        <div className="loading">
-          <span className="sr-only">Carregando serviços...</span>
-          <div className="spinner"></div>
+        <div className="menu-loading">
+          <div className="loading-spinner"></div>
+          <span>Carregando serviços...</span>
         </div>
       ) : services.length === 0 ? (
-        <p className="empty-message">Nenhum serviço disponível.</p>
+        <p className="menu-empty">Nenhum serviço disponível no momento.</p>
       ) : (
-        <div className="services-grid">
+        <div className="services-container">
           {services.map((service) => (
-            <article key={service.id} className="service-item fade-in">
-              <div className="service-image">
+            <div key={service.id} className="service-card">
+              <div className="service-image-container">
                 {service.image ? (
-                  <img
-                    src={service.image}
+                  <img 
+                    src={service.image} 
                     alt={service.name}
-                    loading="lazy"
-                    onError={(e) => (e.target.src = '/assets/fallback-service.png')}
+                    className="service-image"
+                    onError={(e) => {
+                      e.target.src = '/assets/fallback-service.png';
+                      e.target.classList.add('fallback-image');
+                    }}
                   />
                 ) : (
-                  <div className="image-placeholder">Sem imagem</div>
+                  <div className="service-image-placeholder">
+                    <span>Sem imagem</span>
+                  </div>
                 )}
               </div>
-              <div className="service-details">
+              
+              <div className="service-info">
                 <h3 className="service-name">{service.name}</h3>
                 <p className="service-description">
-                  {service.description || 'Sem descrição'}
+                  {service.description || 'Descrição não disponível'}
                 </p>
-                <p className="service-info">
-                  {service.price.toLocaleString('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  })}{' '}
-                  - {service.duration} min
-                </p>
-                <button
-                  className="add-to-cart-btn"
+                
+                <div className="service-meta">
+                  <span className="service-price">
+                    {service.price.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    })}
+                  </span>
+                  <span className="service-duration">
+                    {service.duration} min
+                  </span>
+                </div>
+                
+                <button 
+                  className="add-to-cart-button"
                   onClick={() => handleAddToCart(service)}
                   aria-label={`Adicionar ${service.name} ao carrinho`}
                 >
-                  <FontAwesomeIcon icon={faPlus} /> Adicionar
+                  <FontAwesomeIcon icon={faPlus} />
+                  <span>Adicionar</span>
                 </button>
               </div>
-            </article>
+            </div>
           ))}
         </div>
       )}

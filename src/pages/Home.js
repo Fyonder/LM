@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase';
-import { 
-  doc, 
-  getDoc, 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs 
-} from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useNavigate, useParams } from 'react-router-dom';
+import { db } from '../firebase';
+import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShoppingCart, faTrash, faPlus, faMinus } from '@fortawesome/free-solid-svg-icons';
@@ -23,6 +14,8 @@ const Home = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [shopData, setShopData] = useState(null);
   const [isBarbershopOpen, setIsBarbershopOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [date, setDate] = useState('');
@@ -30,49 +23,65 @@ const Home = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+  const { uid } = useParams(); // Alterado para usar o mesmo nome da rota
 
-  // Check authentication and fetch barbershop data
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        navigate('/login');
+    const fetchShopData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      if (!uid || typeof uid !== 'string' || uid.trim() === '') {
+        setError('ID da barbearia inválido.');
+        setIsLoading(false);
+        toast.error('ID da barbearia inválido ou não fornecido.');
+        navigate('/');
         return;
       }
 
       try {
-        const docRef = doc(db, 'barbershops', user.uid);
+        const docRef = doc(db, 'barbershops', uid.trim());
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setShopData(data);
-          setIsBarbershopOpen(checkIfBarbershopIsOpen(data));
+          setShopData({
+            name: data.basicInfo.name || 'Barbearia Sem Nome',
+            address: data.basicInfo.address || 'Endereço não informado',
+            phone: data.basicInfo.phone || '',
+            logo: data.logo || '/assets/fallback-logo.png',
+            isOpen: data.isOpen || false,
+          });
+          setIsBarbershopOpen(data.isOpen === true);
         } else {
-          toast.error('Dados da barbearia não encontrados');
+          setError('Barbearia não encontrada.');
+          toast.error('Barbearia não encontrada no banco de dados.');
+          navigate('/login');
         }
       } catch (err) {
         console.error('Erro ao buscar dados da barbearia:', err);
+        setError('Erro ao carregar dados da barbearia.');
         toast.error('Não foi possível carregar os dados da barbearia.');
+        navigate('/login');
+      } finally {
+        setIsLoading(false);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, [navigate]);
+    fetchShopData();
+  }, [uid, navigate]);
 
-  const checkIfBarbershopIsOpen = (shopData) => {
-    if (!shopData) return false;
-    return shopData.isOpen === true; // Garante que é boolean true
-  };
-
-  // Cart functions
+  // Funções do carrinho
   const addToCart = (service) => {
+    if (!service || !service.id) {
+      toast.error('Serviço inválido.');
+      return;
+    }
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === service.id);
       if (existingItem) {
         return prevCart.map((item) =>
-          item.id === service.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+          item.id === service.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
       return [...prevCart, { ...service, quantity: 1 }];
@@ -85,9 +94,7 @@ const Home = () => {
       const existingItem = prevCart.find((item) => item.id === serviceId);
       if (existingItem.quantity > 1) {
         return prevCart.map((item) =>
-          item.id === serviceId
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
+          item.id === serviceId ? { ...item, quantity: item.quantity - 1 } : item
         );
       }
       return prevCart.filter((item) => item.id !== serviceId);
@@ -102,7 +109,7 @@ const Home = () => {
     }
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = cart.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
 
   const formatPhoneForWhatsApp = (phone) => {
     return phone.replace(/\D/g, '');
@@ -146,10 +153,9 @@ const Home = () => {
 
     try {
       const q = query(
-        collection(db, 'appointments'),
+        collection(db, 'barbershops', uid, 'appointments'),
         where('date', '==', date),
-        where('time', '==', time),
-        where('barbershopId', '==', auth.currentUser.uid)
+        where('time', '==', time)
       );
       const querySnapshot = await getDocs(q);
 
@@ -157,7 +163,7 @@ const Home = () => {
         throw new Error('Este horário já está reservado. Por favor, escolha outro.');
       }
 
-      await addDoc(collection(db, 'appointments'), {
+      await addDoc(collection(db, 'barbershops', uid, 'appointments'), {
         clientName: name,
         clientPhone: phone,
         date,
@@ -166,13 +172,13 @@ const Home = () => {
         total,
         status: 'pending',
         createdAt: new Date(),
-        barbershopId: auth.currentUser.uid,
+        uid,
       });
 
       const whatsappMessage = `Olá! Gostaria de agendar um horário.%0A%0A*Nome:* ${name}%0A*Telefone:* ${phone}%0A*Data:* ${date}%0A*Horário:* ${time}%0A%0A*Serviços:*%0A${cart
         .map(
           (item) =>
-            `- ${item.name} (${item.quantity}x) - ${item.price.toLocaleString('pt-BR', {
+            `- ${item.name} (${item.quantity}x) - ${(item.price || 0).toLocaleString('pt-BR', {
               style: 'currency',
               currency: 'BRL',
             })}`
@@ -208,14 +214,12 @@ const Home = () => {
   const Header = () => (
     <header className="header">
       <div className="header-content">
-        {shopData?.logo && (
-          <img
-            src={shopData.logo}
-            alt={`${shopData.name} Logo`}
-            className="header-logo"
-            onError={(e) => e.target.src = '/assets/fallback-logo.png'}
-          />
-        )}
+        <img
+          src={shopData?.logo || '/assets/fallback-logo.png'}
+          alt={`${shopData?.name || 'Barbearia'} Logo`}
+          className="header-logo"
+          onError={(e) => (e.target.src = '/assets/fallback-logo.png')}
+        />
         <div className="header-info">
           <h1 className="header-title">{shopData?.name || 'Barbearia'}</h1>
           <p className="header-address">{shopData?.address || 'Endereço não informado'}</p>
@@ -229,23 +233,44 @@ const Home = () => {
     </header>
   );
 
+  if (isLoading) {
+    return (
+      <div className="home">
+        <div className="loading">Carregando cardápio...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="home">
+        <div className="error-message">{error}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="home">
       <Header />
       <main className="home-content container">
         <Menu addToCart={addToCart} />
-        
+
         <button
           className="cart-toggle"
           onClick={() => setIsCartOpen(true)}
           aria-label="Abrir carrinho"
         >
           <FontAwesomeIcon icon={faShoppingCart} />
-          Carrinho ({cart.reduce((sum, item) => sum + item.quantity, 0)})
+          <span>{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
         </button>
 
         {isCartOpen && (
-          <div className="modal-overlay" onClick={() => setIsCartOpen(false)} role="dialog" aria-labelledby="modal-title">
+          <div
+            className="modal-overlay"
+            onClick={() => setIsCartOpen(false)}
+            role="dialog"
+            aria-labelledby="modal-title"
+          >
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <h2 id="modal-title" className="modal-title">
                 Meu Carrinho
@@ -259,15 +284,15 @@ const Home = () => {
                     <div key={item.id} className="cart-item fade-in">
                       <img
                         src={item.image || '/assets/fallback-service.png'}
-                        alt={item.name}
+                        alt={item.name || 'Serviço'}
                         className="item-image"
                         loading="lazy"
                         onError={(e) => (e.target.src = '/assets/fallback-service.png')}
                       />
                       <div className="item-details">
-                        <p className="item-name">{item.name}</p>
+                        <p className="item-name">{item.name || 'Serviço'}</p>
                         <p className="item-price">
-                          {(item.price * item.quantity).toLocaleString('pt-BR', {
+                          {((item.price || 0) * item.quantity).toLocaleString('pt-BR', {
                             style: 'currency',
                             currency: 'BRL',
                           })}
@@ -363,7 +388,9 @@ const Home = () => {
                       >
                         <option value="">Selecione</option>
                         {timeOptions.map((timeOption) => (
-                          <option key={timeOption} value={timeOption}>{timeOption}</option>
+                          <option key={timeOption} value={timeOption}>
+                            {timeOption}
+                          </option>
                         ))}
                       </select>
                       {errors.time && <span className="error-text">{errors.time}</span>}
