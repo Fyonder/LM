@@ -56,7 +56,7 @@ const ShopSettings = () => {
 
       const data = shopSnap.data();
       setShopData({
-        name: data.name || '',
+        name: data.basicInfo?.name || '',
         address: data.basicInfo?.address || '',
         logo: data.logo || '',
         isOpen: data.isOpen !== false
@@ -124,7 +124,7 @@ const ShopSettings = () => {
       const shopRef = doc(db, 'barbershops', userUid);
       await updateDoc(shopRef, {
         name: shopData.name,
-        'basicInfo.address': shopData.address,
+        address: shopData.address,
         logo: logoUrl,
         isOpen: shopData.isOpen
       });
